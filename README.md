@@ -23,10 +23,10 @@ This vault contract should be upgradable using the UUPS proxy pattern.
 
 ## Requirements
 ### Main actions 
-#### deposit: User deposits any ERC20 tokens into vault and get vault shares
-#### withdraw:  User withdraws the underlying tokens with vault shares.
-#### transfer: Function to transfer vault shares from one to another.
-#### flashLoan:
+#### 1. deposit: User deposits any ERC20 tokens into vault and get vault shares
+#### 2. withdraw:  User withdraws the underlying tokens with vault shares.
+#### 3. transfer: Function to transfer vault shares from one to another.
+#### 4. flashLoan:
 - Users can call this function to do flashloan borrow from our vault.
 - You can use ERC3156 Flash loan method here.
 - There is a flashLoanFee that is charged by the borrower. After successful action of flashLoan, the flashloanFee percent of total borrowed amount will be transferred from the borrower to this vault again.
@@ -38,7 +38,7 @@ This vault contract should be upgradable using the UUPS proxy pattern.
         bytes calldata _data
     ) external returns (bool)
  ```
-#### approveContract
+#### 5.approveContract
 - This function will enable or disable the whitelisted contracts to transfer or withdraw user’s vault shares. You can use EIP712 hashing and signing method here.
 ```
 function approveContract(
@@ -51,14 +51,14 @@ function approveContract(
     ) external {}
 ```
 ### Admin-level actions
-#### updateCode: This contract is using UUPS proxy pattern and admin can upgrade using updateCode function.
-#### pause & unpause: Admin can pause/unpause all the above main functions. 
-#### emergencyWidthdraw: Admin can call this function to do emergency withdraw any ERC20 tokens when the vault is paused.
-#### allowContract: Admin can add or remove contracts to the whitelist.
-#### updateFlashloanRate: Admin can update the flashLoanRate using this 
+#### 1. updateCode: This contract is using UUPS proxy pattern and admin can upgrade using updateCode function.
+#### 2. pause & unpause: Admin can pause/unpause all the above main functions. 
+#### 3. emergencyWidthdraw: Admin can call this function to do emergency withdraw any ERC20 tokens when the vault is paused.
+#### 4. allowContract: Admin can add or remove contracts to the whitelist.
+#### 5. updateFlashloanRate: Admin can update the flashLoanRate using this 
 
 ### Other view helper functions
-#### toShare
+#### 1. toShare
 - Helper view function that represents an amount of token in shares.
 ```
 function toShare(
@@ -66,7 +66,7 @@ function toShare(
         uint256 amount
     ) external view returns (uint256);
 ```
-#### toUnderlying
+#### 2. toUnderlying
 - Helper view function that represents shares back into the token amount
 ```
 function toUnderlying(
