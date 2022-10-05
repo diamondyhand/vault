@@ -16,12 +16,6 @@
     bool status;  // add or remove status
   }
 ```
-> mapping **supportedTokens**
-- Those ERC20tokens are supported in Vault Contract.
-```js
-  // mapping (ERC20Token(Usable) => true or false)
-  mapping(address => bool) public supportedTokens;
-```
 
 > mapping **userShares**
 - amount that user have shares for ERC20Tokens.
@@ -33,9 +27,17 @@
 > mapping **whiteList**
 - approved Contract's InfoList
 ```js
-  // mapping (Contract address => whiteInfo(contract's status and users))
-  mapping(address => whiteInfo) public whiteList;
+  // mapping (Contract address => (user address => status))
+  mapping(address => mapping(address => bool)) public whiteList;
 ```
+
+> mapping **whiteList**
+- approved Contract's InfoList
+```js
+  /// @notice mapping to contract to whitelist status
+  mapping(address => mapping(address => bool)) public allowedContracts;
+```
+
 
 > mapping **totalShares**
 - amount of shares already created for this vault
@@ -54,7 +56,7 @@
 ## **All Function Table** 🖥️
 
 | Contract    | Function name       | Note             | Role                |
-| ----------- | ------------------- | --------------   | ------------------- |
+| ----------- | ------------------- | ---------------- | ------------------- |
 | FlashBorrow | onFlashLoan         |                  | `Vault`             |
 | FlashBorrow | flashBorrow         |                  | `Vault`             |
 | Vault       | deposit             | `Main Action`    | `User`              |
