@@ -42,13 +42,12 @@ export const signTypedData = function (from: string, data: IMsgParams) {
   return new Promise(async (resolve, reject) => {
     let web3: Web3;
     web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
+    data.domain.chainId = await web3.eth.getChainId();
     function cb(err: string, result: IResult) {
       if (err) {
-        console.log("local is ", err);
         return reject(err);
       }
       if (result.error) {
-        console.log("local is ", result.error);
         return reject(result.error);
       }
       const sig = result.result;
@@ -56,10 +55,7 @@ export const signTypedData = function (from: string, data: IMsgParams) {
       const r = "0x" + sig0.substring(0, 64);
       const s = "0x" + sig0.substring(64, 128);
       const v = parseInt(sig0.substring(128, 130), 16);
-      console.log("r v s ", r, v, s);
       resolve({
-        data,
-        sig,
         v, r, s
       });
     }

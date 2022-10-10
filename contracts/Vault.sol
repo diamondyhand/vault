@@ -154,10 +154,8 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
         require(allowedContracts[addr] == true, 'Vault: contract must be allowed.');
         uint256 chainId;
         assembly {
-            // chainId := chainid()
-            chainId := 1
+            chainId := chainid()
         }
-        // chainId = 1337;
         bytes32 eip712DomainHash = keccak256(
             abi.encode(
                 keccak256(
@@ -169,12 +167,10 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
                 address(addr)
             )
         );
-
         bytes32 hashStruct = keccak256(abi.encode(keccak256('set(address sender)'), user));
-
         bytes32 hash = keccak256(abi.encodePacked('\x19\x01', eip712DomainHash, hashStruct));
         address signer = ecrecover(hash, v, r, s);
-        require(signer == user || signer != address(0), 'ApproveFunction: invalid signature');
+        require(signer == user && signer != address(0), 'ApproveFunction: invalid signature');
         whiteList[addr][user] = status;
     }
 
