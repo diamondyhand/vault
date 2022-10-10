@@ -26,7 +26,6 @@ interface VaultInterface extends ethers.utils.Interface {
     "allowContract(address,bool)": FunctionFragment;
     "allowedContracts(address)": FunctionFragment;
     "approveContract(address,address,bool,uint8,bytes32,bytes32)": FunctionFragment;
-    "decimal()": FunctionFragment;
     "deposit(address,uint256)": FunctionFragment;
     "emergencyWithdraw(address,address,uint256)": FunctionFragment;
     "feeRate()": FunctionFragment;
@@ -67,7 +66,6 @@ interface VaultInterface extends ethers.utils.Interface {
     functionFragment: "approveContract",
     values: [string, string, boolean, BigNumberish, BytesLike, BytesLike]
   ): string;
-  encodeFunctionData(functionFragment: "decimal", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "deposit",
     values: [string, BigNumberish]
@@ -155,7 +153,6 @@ interface VaultInterface extends ethers.utils.Interface {
     functionFragment: "approveContract",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "decimal", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "emergencyWithdraw",
@@ -205,14 +202,22 @@ interface VaultInterface extends ethers.utils.Interface {
 
   events: {
     "OwnershipTransferred(address,address)": EventFragment;
+    "Paused(address)": EventFragment;
+    "Unpaused(address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Unpaused"): EventFragment;
 }
 
 export type OwnershipTransferredEvent = TypedEvent<
   [string, string] & { previousOwner: string; newOwner: string }
 >;
+
+export type PausedEvent = TypedEvent<[string] & { account: string }>;
+
+export type UnpausedEvent = TypedEvent<[string] & { account: string }>;
 
 export class Vault extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -261,8 +266,8 @@ export class Vault extends BaseContract {
     CALLBACK_SUCCESS(overrides?: CallOverrides): Promise<[string]>;
 
     allowContract(
-      _addr: string,
-      _status: boolean,
+      addr: string,
+      status: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -272,35 +277,33 @@ export class Vault extends BaseContract {
     ): Promise<[boolean]>;
 
     approveContract(
-      _user: string,
-      _contract: string,
-      _status: boolean,
+      user: string,
+      addr: string,
+      status: boolean,
       v: BigNumberish,
       r: BytesLike,
       s: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    decimal(overrides?: CallOverrides): Promise<[BigNumber]>;
-
     deposit(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     emergencyWithdraw(
-      _user: string,
-      _token: string,
-      _amount: BigNumberish,
+      user: string,
+      token: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     feeRate(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     flashFee(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
@@ -326,31 +329,31 @@ export class Vault extends BaseContract {
     ): Promise<ContractTransaction>;
 
     setPause(
-      _paused: boolean,
+      pause: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     toShare(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<[BigNumber] & { _share: BigNumber }>;
+    ): Promise<[BigNumber] & { share: BigNumber }>;
 
     toUnderlying(
-      _token: string,
-      _share: BigNumberish,
+      token: string,
+      share: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<[BigNumber] & { _amount: BigNumber }>;
+    ): Promise<[BigNumber] & { amount: BigNumber }>;
 
     totalAmounts(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
 
     totalShares(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
 
     transfer(
-      _user: string,
-      _receiver: string,
-      _token: string,
-      _share: BigNumberish,
+      user: string,
+      receiver: string,
+      token: string,
+      share: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -365,7 +368,7 @@ export class Vault extends BaseContract {
     ): Promise<ContractTransaction>;
 
     updateFlashloanfeeRate(
-      _feeRate: BigNumberish,
+      feeRate_: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -376,8 +379,8 @@ export class Vault extends BaseContract {
     ): Promise<[BigNumber]>;
 
     viewShare(
-      _addr: string,
-      _token: string,
+      addr: string,
+      token: string,
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { amount: BigNumber }>;
 
@@ -388,8 +391,8 @@ export class Vault extends BaseContract {
     ): Promise<[boolean]>;
 
     withdraw(
-      _user: string,
-      _token: string,
+      user: string,
+      token: string,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
@@ -397,43 +400,41 @@ export class Vault extends BaseContract {
   CALLBACK_SUCCESS(overrides?: CallOverrides): Promise<string>;
 
   allowContract(
-    _addr: string,
-    _status: boolean,
+    addr: string,
+    status: boolean,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   allowedContracts(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
   approveContract(
-    _user: string,
-    _contract: string,
-    _status: boolean,
+    user: string,
+    addr: string,
+    status: boolean,
     v: BigNumberish,
     r: BytesLike,
     s: BytesLike,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  decimal(overrides?: CallOverrides): Promise<BigNumber>;
-
   deposit(
-    _token: string,
-    _amount: BigNumberish,
+    token: string,
+    amount: BigNumberish,
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   emergencyWithdraw(
-    _user: string,
-    _token: string,
-    _amount: BigNumberish,
+    user: string,
+    token: string,
+    amount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   feeRate(overrides?: CallOverrides): Promise<BigNumber>;
 
   flashFee(
-    _token: string,
-    _amount: BigNumberish,
+    token: string,
+    amount: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
@@ -456,19 +457,19 @@ export class Vault extends BaseContract {
   ): Promise<ContractTransaction>;
 
   setPause(
-    _paused: boolean,
+    pause: boolean,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   toShare(
-    _token: string,
-    _amount: BigNumberish,
+    token: string,
+    amount: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
   toUnderlying(
-    _token: string,
-    _share: BigNumberish,
+    token: string,
+    share: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
@@ -477,10 +478,10 @@ export class Vault extends BaseContract {
   totalShares(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
   transfer(
-    _user: string,
-    _receiver: string,
-    _token: string,
-    _share: BigNumberish,
+    user: string,
+    receiver: string,
+    token: string,
+    share: BigNumberish,
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -495,7 +496,7 @@ export class Vault extends BaseContract {
   ): Promise<ContractTransaction>;
 
   updateFlashloanfeeRate(
-    _feeRate: BigNumberish,
+    feeRate_: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -506,8 +507,8 @@ export class Vault extends BaseContract {
   ): Promise<BigNumber>;
 
   viewShare(
-    _addr: string,
-    _token: string,
+    addr: string,
+    token: string,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
@@ -518,8 +519,8 @@ export class Vault extends BaseContract {
   ): Promise<boolean>;
 
   withdraw(
-    _user: string,
-    _token: string,
+    user: string,
+    token: string,
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -527,43 +528,41 @@ export class Vault extends BaseContract {
     CALLBACK_SUCCESS(overrides?: CallOverrides): Promise<string>;
 
     allowContract(
-      _addr: string,
-      _status: boolean,
+      addr: string,
+      status: boolean,
       overrides?: CallOverrides
     ): Promise<void>;
 
     allowedContracts(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
     approveContract(
-      _user: string,
-      _contract: string,
-      _status: boolean,
+      user: string,
+      addr: string,
+      status: boolean,
       v: BigNumberish,
       r: BytesLike,
       s: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    decimal(overrides?: CallOverrides): Promise<BigNumber>;
-
     deposit(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
     emergencyWithdraw(
-      _user: string,
-      _token: string,
-      _amount: BigNumberish,
+      user: string,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
     feeRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     flashFee(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -583,17 +582,17 @@ export class Vault extends BaseContract {
 
     renounceOwnership(overrides?: CallOverrides): Promise<void>;
 
-    setPause(_paused: boolean, overrides?: CallOverrides): Promise<void>;
+    setPause(pause: boolean, overrides?: CallOverrides): Promise<void>;
 
     toShare(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     toUnderlying(
-      _token: string,
-      _share: BigNumberish,
+      token: string,
+      share: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -602,10 +601,10 @@ export class Vault extends BaseContract {
     totalShares(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     transfer(
-      _user: string,
-      _receiver: string,
-      _token: string,
-      _share: BigNumberish,
+      user: string,
+      receiver: string,
+      token: string,
+      share: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -617,7 +616,7 @@ export class Vault extends BaseContract {
     updateCode(newCode: string, overrides?: CallOverrides): Promise<void>;
 
     updateFlashloanfeeRate(
-      _feeRate: BigNumberish,
+      feeRate_: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -628,8 +627,8 @@ export class Vault extends BaseContract {
     ): Promise<BigNumber>;
 
     viewShare(
-      _addr: string,
-      _token: string,
+      addr: string,
+      token: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -640,8 +639,8 @@ export class Vault extends BaseContract {
     ): Promise<boolean>;
 
     withdraw(
-      _user: string,
-      _token: string,
+      user: string,
+      token: string,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -662,14 +661,26 @@ export class Vault extends BaseContract {
       [string, string],
       { previousOwner: string; newOwner: string }
     >;
+
+    "Paused(address)"(
+      account?: null
+    ): TypedEventFilter<[string], { account: string }>;
+
+    Paused(account?: null): TypedEventFilter<[string], { account: string }>;
+
+    "Unpaused(address)"(
+      account?: null
+    ): TypedEventFilter<[string], { account: string }>;
+
+    Unpaused(account?: null): TypedEventFilter<[string], { account: string }>;
   };
 
   estimateGas: {
     CALLBACK_SUCCESS(overrides?: CallOverrides): Promise<BigNumber>;
 
     allowContract(
-      _addr: string,
-      _status: boolean,
+      addr: string,
+      status: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -679,35 +690,33 @@ export class Vault extends BaseContract {
     ): Promise<BigNumber>;
 
     approveContract(
-      _user: string,
-      _contract: string,
-      _status: boolean,
+      user: string,
+      addr: string,
+      status: boolean,
       v: BigNumberish,
       r: BytesLike,
       s: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    decimal(overrides?: CallOverrides): Promise<BigNumber>;
-
     deposit(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     emergencyWithdraw(
-      _user: string,
-      _token: string,
-      _amount: BigNumberish,
+      user: string,
+      token: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     feeRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     flashFee(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -730,19 +739,19 @@ export class Vault extends BaseContract {
     ): Promise<BigNumber>;
 
     setPause(
-      _paused: boolean,
+      pause: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     toShare(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     toUnderlying(
-      _token: string,
-      _share: BigNumberish,
+      token: string,
+      share: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -751,10 +760,10 @@ export class Vault extends BaseContract {
     totalShares(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     transfer(
-      _user: string,
-      _receiver: string,
-      _token: string,
-      _share: BigNumberish,
+      user: string,
+      receiver: string,
+      token: string,
+      share: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -769,7 +778,7 @@ export class Vault extends BaseContract {
     ): Promise<BigNumber>;
 
     updateFlashloanfeeRate(
-      _feeRate: BigNumberish,
+      feeRate_: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -780,8 +789,8 @@ export class Vault extends BaseContract {
     ): Promise<BigNumber>;
 
     viewShare(
-      _addr: string,
-      _token: string,
+      addr: string,
+      token: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -792,8 +801,8 @@ export class Vault extends BaseContract {
     ): Promise<BigNumber>;
 
     withdraw(
-      _user: string,
-      _token: string,
+      user: string,
+      token: string,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
@@ -802,8 +811,8 @@ export class Vault extends BaseContract {
     CALLBACK_SUCCESS(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     allowContract(
-      _addr: string,
-      _status: boolean,
+      addr: string,
+      status: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -813,35 +822,33 @@ export class Vault extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     approveContract(
-      _user: string,
-      _contract: string,
-      _status: boolean,
+      user: string,
+      addr: string,
+      status: boolean,
       v: BigNumberish,
       r: BytesLike,
       s: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    decimal(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     deposit(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     emergencyWithdraw(
-      _user: string,
-      _token: string,
-      _amount: BigNumberish,
+      user: string,
+      token: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     feeRate(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     flashFee(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -867,19 +874,19 @@ export class Vault extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     setPause(
-      _paused: boolean,
+      pause: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     toShare(
-      _token: string,
-      _amount: BigNumberish,
+      token: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     toUnderlying(
-      _token: string,
-      _share: BigNumberish,
+      token: string,
+      share: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -894,10 +901,10 @@ export class Vault extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     transfer(
-      _user: string,
-      _receiver: string,
-      _token: string,
-      _share: BigNumberish,
+      user: string,
+      receiver: string,
+      token: string,
+      share: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -912,7 +919,7 @@ export class Vault extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     updateFlashloanfeeRate(
-      _feeRate: BigNumberish,
+      feeRate_: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -923,8 +930,8 @@ export class Vault extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     viewShare(
-      _addr: string,
-      _token: string,
+      addr: string,
+      token: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -935,8 +942,8 @@ export class Vault extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     withdraw(
-      _user: string,
-      _token: string,
+      user: string,
+      token: string,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };
