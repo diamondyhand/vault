@@ -22,7 +22,7 @@ import type { TypedEventFilter, TypedEvent, TypedListener } from "./common";
 
 interface IERC3156FlashLenderInterface extends ethers.utils.Interface {
   functions: {
-    "flashFee(address,uint256)": FunctionFragment;
+    "flashFee(uint256)": FunctionFragment;
     "flashLoan(address,address,uint256,bytes)": FunctionFragment;
     "maxFlashLoan(address)": FunctionFragment;
     "transfer(address,address,address,uint256)": FunctionFragment;
@@ -31,7 +31,7 @@ interface IERC3156FlashLenderInterface extends ethers.utils.Interface {
 
   encodeFunctionData(
     functionFragment: "flashFee",
-    values: [string, BigNumberish]
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "flashLoan",
@@ -107,7 +107,6 @@ export class IERC3156FlashLender extends BaseContract {
 
   functions: {
     flashFee(
-      token: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -140,11 +139,7 @@ export class IERC3156FlashLender extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
-  flashFee(
-    token: string,
-    amount: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
+  flashFee(amount: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
   flashLoan(
     receiver: string,
@@ -172,7 +167,6 @@ export class IERC3156FlashLender extends BaseContract {
 
   callStatic: {
     flashFee(
-      token: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -206,7 +200,6 @@ export class IERC3156FlashLender extends BaseContract {
 
   estimateGas: {
     flashFee(
-      token: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -238,7 +231,6 @@ export class IERC3156FlashLender extends BaseContract {
 
   populateTransaction: {
     flashFee(
-      token: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;

@@ -44,17 +44,18 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
      * @param token Token address to deposit.
      * @param amount Amount to deposit.
      */
-    function deposit(address token, uint256 amount) external payable whenNotPaused {
+    function deposit(address token, uint256 amount) external payable nonReentrant whenNotPaused {
         require(
             IERC20(token).allowance(msg.sender, address(this)) >= amount && amount != 0,
             'Vault: You must be approve.'
         );
         require(IERC20(token).balanceOf(msg.sender) >= amount, 'Vault: deposit amount not enough.');
         IERC20(token).transferFrom(msg.sender, address(this), amount);
-        if (totalAmounts[token] == 0) {
+        if (totalShares[token] == 0) {
+            totalShares[token] = 10**8;
             userShares[msg.sender][token] = totalShares[token];
         } else {
-            uint256 share = ((amount * totalShares[token])) / totalAmounts[token];
+            uint256 share = toShare(token, amount);
             totalShares[token] += share;
             userShares[msg.sender][token] = share;
         }
@@ -68,17 +69,7 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
      * @param token Token address to withdraw.
      */
     function withdraw(address user, address token) external payable override whenNotPaused {
-        require(
-            user == msg.sender ||
-                (whiteList[msg.sender][user] == true && allowedContracts[msg.sender] == true),
-            'Vault: withdraw permission error.'
-        );
-        uint256 amount = toUnderlying(IERC20(token), userShares[user][token]);
-        require(amount > 0, 'Vault: withdraw amount error.');
-        totalAmounts[token] -= amount;
-        totalShares[token] -= userShares[user][token];
-        userShares[user][token] = 0;
-        IERC20(token).transfer(user, amount);
+        _withdraw(user, msg.sender, token);
     }
 
     /**
@@ -117,8 +108,8 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
         address token,
         uint256 amount,
         bytes calldata data
-    ) external override whenNotPaused returns (bool) {
-        uint256 feeMount = _flashFee(token, amount);
+    ) external override nonReentrant whenNotPaused returns (bool) {
+        uint256 feeMount = _flashFee(amount);
         require(amount <= totalAmounts[token] && amount > 0, 'Vault: flashLoan amount Error.');
         IERC20(token).transfer(address(receiver), amount);
         require(
@@ -176,22 +167,11 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
 
     /**
      * @dev The fee to be charged for a given loan.
-     * @param token The loan currency.
      * @param amount The amount of tokens lent.
      * @return The amount of `token` to be charged for the loan, on top of the returned principal.
      */
-    function flashFee(address token, uint256 amount) external view override returns (uint256) {
-        return _flashFee(token, amount);
-    }
-
-    /**
-     * @dev The fee to be charged for a given loan. Internal function with no checks.
-     * @param token The loan currency.
-     * @param amount The amount of tokens lent.
-     * @return The amount of `token` to be charged for the loan, on top of the returned principal.
-     */
-    function _flashFee(address token, uint256 amount) internal view returns (uint256) {
-        return (amount * feeRate) / 10000;
+    function flashFee(uint256 amount) external view override returns (uint256) {
+        return _flashFee(amount);
     }
 
     /**
@@ -227,16 +207,9 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
      * @dev Admin can call this function to do emergency withdraw any ERC20 tokens when the vault is paused.
      * @param user user's address for withdraw
      * @param token ERC20token address for withdraw
-     * @param amount amount for withdraw
      */
-    function emergencyWithdraw(
-        address user,
-        address token,
-        uint256 amount
-    ) external onlyOwner {
-        uint256 _amount = (userShares[user][token] * totalAmounts[token]) / totalShares[token];
-        require(amount <= _amount && amount > 0, 'Vault: emergencyWithdraw amount error.');
-        IERC20(token).transfer(user, amount);
+    function emergencyWithdraw(address user, address token) external onlyOwner {
+        _withdraw(user, user, token);
     }
 
     /**
@@ -263,8 +236,8 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
      * @param token ERC20Token interface for convert
      * @param amount amount of ERC20Token
      */
-    function toShare(IERC20 token, uint256 amount) public view returns (uint256 share) {
-        share = (amount * totalShares[address(token)]) / totalAmounts[address(token)];
+    function toShare(address token, uint256 amount) public view returns (uint256 share) {
+        share = (amount * totalShares[token]) / totalAmounts[token];
     }
 
     /**
@@ -272,12 +245,39 @@ contract Vault is IERC3156FlashLender, Ownable, Pausable, ReentrancyGuard {
      * @param token ERC20Token interface for convert
      * @param share share of ERC20Token
      */
-    function toUnderlying(IERC20 token, uint256 share) public view returns (uint256 amount) {
-        amount = (share * totalAmounts[address(token)]) / totalShares[address(token)];
+    function toUnderlying(address token, uint256 share) public view returns (uint256 amount) {
+        amount = (share * totalAmounts[token]) / totalShares[token];
     }
 
     // test function(for show shares)
     function viewShare(address addr, address token) public view onlyOwner returns (uint256 amount) {
         amount = userShares[addr][token];
+    }
+
+    /**
+     * @dev The fee to be charged for a given loan. Internal function with no checks.
+     * @param amount The amount of tokens lent.
+     * @return The amount of `token` to be charged for the loan, on top of the returned principal.
+     */
+    function _flashFee(uint256 amount) internal view returns (uint256) {
+        return (amount * feeRate) / 10000;
+    }
+
+    function _withdraw(
+        address user,
+        address msgSender,
+        address token
+    ) internal nonReentrant {
+        require(
+            user == msgSender ||
+                (whiteList[msgSender][user] == true && allowedContracts[msgSender] == true),
+            'Vault: withdraw permission error.'
+        );
+        require(userShares[user][token] > 0, 'Vault: withdraw amount not exist.');
+        uint256 amount = toUnderlying(token, userShares[user][token]);
+        totalAmounts[token] -= amount;
+        totalShares[token] -= userShares[user][token];
+        userShares[user][token] = 0;
+        IERC20(token).transfer(user, amount);
     }
 }

@@ -6,9 +6,7 @@ import { signTypedData, IMsgParams } from './EIP712';
 import { FlashBorrowerMock, ERC20Mock, Vault } from '../types'
 import {
   MAX_DECIMAL,
-  UST_DECIMAL,
 } from "./constants";
-import Web3 from "web3";
 
 const timeTravel = async (seconds: number) => {
   await ethers.provider.send("evm_increaseTime", [seconds]);
@@ -122,5 +120,59 @@ describe("Vault Contract Test.", () => {
       })
     })
 
+    describe("withdraw and emergencyWithdraw function.", () => {
+      it("revert if msgSender is not user or whitelist.", async () => {
+        await expect(Vault.connect(Tom).withdraw(Jerry.address, DAI.address)).to.be.revertedWith("Vault: withdraw permission error.");
+      })
+
+      it("revert if user's withdraw amount is zero.", async () => {
+        await expect(Vault.connect(Tom).withdraw(Tom.address, DAI.address)).to.be.revertedWith("Vault: withdraw amount not exist.");
+      })
+
+
+      it("withdraw successful.", async () => {
+        await DAI.connect(Tom).approve(Vault.address, U200K);
+        await Vault.connect(Tom).deposit(DAI.address, U100K);
+        await Vault.connect(Tom).withdraw(Tom.address, DAI.address);
+      })
+    })
+
+    describe("transfer function.", () => {
+      it("revert if msgSender is not user or whitelist.", async () => {
+        await expect(Vault.connect(Tom).transfer(Jerry.address, Tom.address, DAI.address, 1000)).to.be.revertedWith("Vault: transfer permission error.");
+      })
+
+      it("revert if user's shares is smaller that sending share.", async () => {
+        await expect(Vault.connect(Tom).transfer(Tom.address, Jerry.address, DAI.address, 1000000000)).to.be.revertedWith("Vault: transfer amount error.");
+      })
+
+      it("transfer successful.", async () => {
+        await DAI.connect(Tom).approve(Vault.address, U200K);
+        await Vault.connect(Tom).deposit(DAI.address, U100K);
+        await Vault.connect(Tom).transfer(Tom.address, Jerry.address, DAI.address, 1000);
+      })
+    })
+
+    describe("maxFlashLoan and setPause function.", async () => {
+      it("maxFlashLoan successful.", async () => {
+        await Vault.setPause(true);
+        await Vault.setPause(false);
+        const maxFlashLoan = await Vault.maxFlashLoan(DAI.address);
+      })
+    })
+
+    describe("emergencyWithdraw function.", async () => {
+      it("emergencyWithdraw successful.", async () => {
+        await DAI.connect(Tom).approve(Vault.address, U200K);
+        await Vault.connect(Tom).deposit(DAI.address, U100K);
+        await Vault.emergencyWithdraw(Tom.address, DAI.address);
+      })
+    })
+
+    describe("updateFlashloanfeeRate function.", async () => {
+      it("updateFlashloanfeeRate successful.", async () => {
+        await Vault.updateFlashloanfeeRate(2);
+      })
+    })
   });
 })

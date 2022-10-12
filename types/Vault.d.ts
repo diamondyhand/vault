@@ -27,9 +27,9 @@ interface VaultInterface extends ethers.utils.Interface {
     "allowedContracts(address)": FunctionFragment;
     "approveContract(address,address,bool,uint8,bytes32,bytes32)": FunctionFragment;
     "deposit(address,uint256)": FunctionFragment;
-    "emergencyWithdraw(address,address,uint256)": FunctionFragment;
+    "emergencyWithdraw(address,address)": FunctionFragment;
     "feeRate()": FunctionFragment;
-    "flashFee(address,uint256)": FunctionFragment;
+    "flashFee(uint256)": FunctionFragment;
     "flashLoan(address,address,uint256,bytes)": FunctionFragment;
     "maxFlashLoan(address)": FunctionFragment;
     "owner()": FunctionFragment;
@@ -72,12 +72,12 @@ interface VaultInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "emergencyWithdraw",
-    values: [string, string, BigNumberish]
+    values: [string, string]
   ): string;
   encodeFunctionData(functionFragment: "feeRate", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "flashFee",
-    values: [string, BigNumberish]
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "flashLoan",
@@ -295,14 +295,12 @@ export class Vault extends BaseContract {
     emergencyWithdraw(
       user: string,
       token: string,
-      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     feeRate(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     flashFee(
-      token: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -426,17 +424,12 @@ export class Vault extends BaseContract {
   emergencyWithdraw(
     user: string,
     token: string,
-    amount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   feeRate(overrides?: CallOverrides): Promise<BigNumber>;
 
-  flashFee(
-    token: string,
-    amount: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
+  flashFee(amount: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
   flashLoan(
     receiver: string,
@@ -554,14 +547,12 @@ export class Vault extends BaseContract {
     emergencyWithdraw(
       user: string,
       token: string,
-      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
     feeRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     flashFee(
-      token: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -708,14 +699,12 @@ export class Vault extends BaseContract {
     emergencyWithdraw(
       user: string,
       token: string,
-      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     feeRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     flashFee(
-      token: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -840,14 +829,12 @@ export class Vault extends BaseContract {
     emergencyWithdraw(
       user: string,
       token: string,
-      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     feeRate(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     flashFee(
-      token: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
